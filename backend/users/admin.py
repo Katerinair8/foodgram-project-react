@@ -1,11 +1,14 @@
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import CustomUserCreationForm
-from .models import CustomUser, Subscribe
+from .models import Subscribe
 
+CustomUser = get_user_model()
 
+@admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
     add_form = CustomUserCreationForm
@@ -26,12 +29,9 @@ class CustomUserAdmin(UserAdmin):
     empty_value_display = settings.EMPTY_VALUE_DISPLAY
 
 
+@admin.register(Subscribe)
 class SubscribeAdmin(admin.ModelAdmin):
     list_display = ('user', 'author')
     search_fields = ('user', 'author')
     list_filter = ('user', 'author')
     empty_value_display = settings.EMPTY_VALUE_DISPLAY
-
-
-admin.site.register(CustomUser, CustomUserAdmin)
-admin.site.register(Subscribe, SubscribeAdmin)

@@ -5,6 +5,7 @@ from .models import (Favorite, Ingredient, Recipe, RecipeIngredient, Shopping,
                      Tag)
 
 
+@admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'color', 'slug')
     search_fields = ('name', 'color', 'slug')
@@ -13,6 +14,7 @@ class TagAdmin(admin.ModelAdmin):
     empty_value_display = settings.EMPTY_VALUE_DISPLAY
 
 
+@admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'measurement_unit')
     search_fields = ('name', 'measurement_unit')
@@ -21,6 +23,7 @@ class IngredientAdmin(admin.ModelAdmin):
     empty_value_display = settings.EMPTY_VALUE_DISPLAY
 
 
+@admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'author', 'count_favorites')
     search_fields = ('username', 'email', 'first_name', 'last_name',)
@@ -32,6 +35,7 @@ class RecipeAdmin(admin.ModelAdmin):
         return obj.favorites.count()
 
 
+@admin.register(RecipeIngredient)
 class RecipeIngredientAdmin(admin.ModelAdmin):
     list_display = ('id', 'recipe', 'ingredient', 'amount')
     search_fields = ('recipe', 'ingredient',)
@@ -39,6 +43,7 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
     empty_value_display = settings.EMPTY_VALUE_DISPLAY
 
 
+@admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
     search_fields = ('user', 'recipe',)
@@ -46,16 +51,9 @@ class FavoriteAdmin(admin.ModelAdmin):
     empty_value_display = settings.EMPTY_VALUE_DISPLAY
 
 
+@admin.register(Shopping)
 class ShoppingAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
     search_fields = ('user', 'recipe',)
     list_filter = ('user', 'recipe',)
     empty_value_display = settings.EMPTY_VALUE_DISPLAY
-
-
-admin.site.register(Tag, TagAdmin)
-admin.site.register(Ingredient, IngredientAdmin)
-admin.site.register(Recipe, RecipeAdmin)
-admin.site.register(RecipeIngredient, RecipeIngredientAdmin)
-admin.site.register(Favorite, FavoriteAdmin)
-admin.site.register(Shopping, ShoppingAdmin)

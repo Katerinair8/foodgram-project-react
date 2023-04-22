@@ -25,6 +25,18 @@ class RecipeFilter(django_filters.FilterSet):
     )
     author = django_filters.ModelChoiceFilter(queryset=User.objects.all())
 
+    # обе переменные берутся из  query_params запроса  Как их брать в фильтре? и как отфильтровать по юзеру?
+
+    # is_favorited = django_filters.BooleanFilter(
+    #     field_name=request.is_favorited,
+    #     queryset=Recipe.objects.filter(favorites__user=request.user),
+    # )
+
+    # is_in_shopping_cart = django_filters.BooleanFilter(
+    #     field_name='is_favorited',
+    #     queryset=Recipe.objects.filter(cart__user=request.user),
+    # )
+
     class Meta:
         model = Recipe
         fields = ('tags', 'author')

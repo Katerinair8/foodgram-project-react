@@ -1,9 +1,18 @@
 from django.contrib.auth import get_user_model
 from django.core import validators
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from django.db import models
+import re
 
 User = get_user_model()
 
+def validate_hex(value: str):
+    if not re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', value):
+        raise ValidationError(
+            _("Color %(value)s is not in a hex format"),
+            params={"value": value},)
+    
 
 class Tag(models.Model):
     """Модель тэга."""
@@ -17,7 +26,7 @@ class Tag(models.Model):
         'HEX-код',
         max_length=7,
         unique=True,
-        default='#FF0000'
+        validators=[validate_hex],
     )
     slug = models.SlugField(
         'Slug тега',
@@ -38,7 +47,8 @@ class Ingredient(models.Model):
 
     name = models.CharField(
         'Название',
-        max_length=200
+        max_length=200,
+        unique=True,
     )
     measurement_unit = models.CharField(
         'Единица измерения',
@@ -82,13 +92,9 @@ class Recipe(models.Model):
     )
 
     class Meta:
-        ordering = ['-id']
+        ordering = ('-id',)
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-        constraints = [
-            models.UniqueConstraint(fields=['author', 'name'],
-                                    name='unique_author_name')
-        ]
 
     def __str__(self):
         return self.name
@@ -124,7 +130,6 @@ class RecipeIngredient(models.Model):
             models.UniqueConstraint(fields=['recipe', 'ingredient'],
                                     name='unique_recipe_ingredient')
         ]
-        db_table = 'recipes_recipe_ingredient'
 
 
 class Favorite(models.Model):
@@ -152,7 +157,7 @@ class Favorite(models.Model):
         ]
 
     def __str__(self):
-        return f'Рецепт {self.recipe} в избранном у {self.user}'
+        return f'Рецепт {self.recipe_id} в избранном у {self.user_id}'
 
 
 class Shopping(models.Model):
@@ -180,4 +185,4 @@ class Shopping(models.Model):
         ]
 
     def __str__(self):
-        return f'Рецепт {self.recipe} в списке покупок у {self.user}'
+        return f'Рецепт {self.recipe_id} в списке покупок у {self.user_id}'
