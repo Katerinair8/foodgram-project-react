@@ -8,35 +8,41 @@ User = get_user_model()
 
 class IngredientFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(
-        field_name='name',
-        lookup_expr='istartswith'
+        field_name="name",
+        lookup_expr="istartswith",
     )
 
     class Meta:
         model = Ingredient
-        fields = ('name', 'measurement_unit')
+        fields = ("name", "measurement_unit")
 
 
 class RecipeFilter(django_filters.FilterSet):
     tags = django_filters.ModelMultipleChoiceFilter(
-        field_name='tags__slug',
-        to_field_name='slug',
+        field_name="tags__slug",
+        to_field_name="slug",
         queryset=Tag.objects.all(),
     )
     author = django_filters.ModelChoiceFilter(queryset=User.objects.all())
 
-    # обе переменные берутся из  query_params запроса  Как их брать в фильтре? и как отфильтровать по юзеру?
+    is_favorited = django_filters.BooleanFilter(
+        method="is_favorited",
+    )
 
-    # is_favorited = django_filters.BooleanFilter(
-    #     field_name=request.is_favorited,
-    #     queryset=Recipe.objects.filter(favorites__user=request.user),
-    # )
-
-    # is_in_shopping_cart = django_filters.BooleanFilter(
-    #     field_name='is_favorited',
-    #     queryset=Recipe.objects.filter(cart__user=request.user),
-    # )
+    is_in_shopping_cart = django_filters.BooleanFilter(
+        method="is_in_shopping_cart",
+    )
 
     class Meta:
         model = Recipe
-        fields = ('tags', 'author')
+        fields = ("tags", "author")
+
+    def is_favorited(self, queryset, request):
+        if bool(self.request.query_params.get("is_favorited")):
+            return queryset.filter(favorites__user=request.user)
+        return queryset
+
+    def is_in_shopping_cart(self, queryset, request):
+        if bool(self.request.query_params.get("is_in_shopping_cart")):
+            return queryset.filter(cart__user=request.user)
+        return queryset

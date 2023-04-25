@@ -1,35 +1,39 @@
-from django.contrib.auth import get_user_model
-from django_filters.rest_framework import DjangoFilterBackend
-from djoser.views import UserViewSet
-from rest_framework import status, viewsets
-from rest_framework.decorators import action
-from rest_framework.generics import get_object_or_404
-
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
-
 import io
 
+from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import FileResponse
-from rest_framework.views import APIView
+from django_filters.rest_framework import DjangoFilterBackend
+from djoser.views import UserViewSet
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            Shopping, Tag)
+from users.models import Subscribe
+
+from .constants import (PDF_CENTER, PDF_FILENAME, PDF_FONT_NAME,
+                        PDF_HEADER_FONT_SIZE, PDF_HEADER_TEXT, PDF_HEIGHT,
+                        PDF_LEFT, PDF_STEP, PDF_TEXT_FONT_SIZE)
 from .filters import IngredientFilter, RecipeFilter
 from .mixins import ListRetrieveViewSet
-from users.models import Subscribe
 from .pagination import CustomPageNumberPagination
-from .permissions import IsAuthorOrReadOnly
-from recipes.models import Favorite, Ingredient, Recipe, Shopping, Tag, RecipeIngredient
-from .serializers import (FollowSerializer, IngredientSerializer, RecipeFollowSerializer,
-                          RecipeGetSerializer, RecipeSerializer, TagSerializer)
-from .utils import delete, post
-
-from .constants import *
+from .permissions import IsAuthor
+from .serializers import (FollowSerializer, IngredientSerializer,
+                          RecipeFollowSerializer, RecipeGetSerializer,
+                          RecipeSerializer, TagSerializer)
+from .utils import prepare_delete_response, prepare_post_response
 
 CustomUser = get_user_model()
+
 
 class CustomUserViewSet(UserViewSet):
     pagination_class = CustomPageNumberPagination
@@ -37,59 +41,55 @@ class CustomUserViewSet(UserViewSet):
     @action(
         detail=True,
         permission_classes=[IsAuthenticated],
-        methods=['POST', 'DELETE']
+        methods=["POST", "DELETE"],
     )
     def subscribe(self, request, id=None):
         current_user = request.user
         author = get_object_or_404(CustomUser, id=id)
-        if self.request.method == 'POST':
-            if Subscribe.objects.filter(user=current_user, author=author).exists():
-                return Response(
-                    {'errors': 'Вы уже подписаны на данного пользователя'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            if current_user == author:
-                return Response(
-                    {'errors': 'Нельзя подписаться на самого себя'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+        context = {"request": request, "user": current_user, "author": author}
+
+        serializer = FollowSerializer(None, many=True, context=context)
+
+        if self.request.method == "POST":
+            if len(serializer.data) > 1:
+                if serializer.data[0]["is_subscribed"]:
+                    return Response(
+                        {"errors": "Вы уже подписаны на данного пользователя"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
             follow = Subscribe.objects.create(user=current_user, author=author)
-            serializer = FollowSerializer(
-                follow, context={'request': request}
-            )
+            serializer = FollowSerializer(follow, context=context)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        elif self.request.method == 'DELETE':
-            if Subscribe.objects.filter(user=current_user, author=author).exists():
-                follow = get_object_or_404(Subscribe, user=current_user, author=author)
-                follow.delete()
-                return Response(
-                    'Подписка успешно удалена',
-                    status=status.HTTP_204_NO_CONTENT
-                )
-            if current_user == author:
-                return Response(
-                    {'errors': 'Нельзя отписаться от самого себя'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+        if self.request.method == "DELETE":
+            if len(serializer.data) > 1:
+                if serializer.data[0]["is_subscribed"]:
+                    follow = get_object_or_404(
+                        Subscribe,
+                        user=current_user,
+                        author=author,
+                    )
+                    follow.delete()
+                    return Response(
+                        "Подписка успешно удалена",
+                        status=status.HTTP_204_NO_CONTENT,
+                    )
             return Response(
-                {'errors': 'Вы не подписаны на данного пользователя'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"errors": "Ошибка отписки"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
+        return None
 
     @action(
         detail=False,
-        permission_classes=[IsAuthenticated],
-        methods=['GET']
+        permission_classes=[IsAuthenticatedOrReadOnly],
+        methods=["GET"],
     )
     def subscriptions(self, request):
         user = request.user
+        context = {"request": request, "user": user, "author": None}
         queryset = Subscribe.objects.filter(user=user)
         pages = self.paginate_queryset(queryset)
-        serializer = FollowSerializer(
-            pages,
-            many=True,
-            context={'request': request}
-        )
+        serializer = FollowSerializer(pages, many=True, context=context)
         return self.get_paginated_response(serializer.data)
 
 
@@ -120,43 +120,64 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filterset_class = RecipeFilter
     pagination_class = CustomPageNumberPagination
 
-    def get_queryset(self):
-        is_favorited = self.request.query_params.get('is_favorited')
-        if is_favorited is not None and int(is_favorited) == 1:
-            return Recipe.objects.filter(favorites__user=self.request.user)
-        is_in_shopping_cart = self.request.query_params.get(
-            'is_in_shopping_cart')
-        if is_in_shopping_cart is not None and int(is_in_shopping_cart) == 1:
-            return Recipe.objects.filter(cart__user=self.request.user)
-        return Recipe.objects.all()
-
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
     def get_serializer_class(self):
-        if self.request.method == 'GET':
+        if self.request.method == "GET":
             return RecipeGetSerializer
         return RecipeSerializer
 
     def get_permissions(self):
-        if self.action != 'create':
-            return(IsAuthorOrReadOnly(),)
+        if self.action != "create":
+            return (IsAuthor(),)
         return super().get_permissions()
 
-    @action(detail=True, methods=['POST', 'DELETE'],)
+    @action(
+        detail=True,
+        methods=["POST", "DELETE"],
+    )
     def favorite(self, request, pk):
-        if request.method == 'POST':
-            return post(request, pk, Favorite, RecipeFollowSerializer)
-        elif request.method == 'DELETE':
-            return delete(request, pk, Favorite)
+        if request.method == "POST":
+            return prepare_post_response(
+                request=request,
+                pk=pk,
+                model=Favorite,
+                serializer=RecipeFollowSerializer,
+                error_message="Рецепт уже есть в избранном",
+            )
+        if request.method == "DELETE":
+            return prepare_delete_response(
+                request=request,
+                pk=pk,
+                model=Favorite,
+                success_message="Рецепт успешно удален из избранного",
+                not_found_message="Данного рецепта не было в избранном",
+            )
+        return None
 
-    @action(detail=True, methods=['POST', 'DELETE'],)
+    @action(
+        detail=True,
+        methods=["POST", "DELETE"],
+    )
     def shopping_cart(self, request, pk):
-        if request.method == 'POST':
-            return post(request, pk, Shopping, RecipeFollowSerializer)
-        elif request.method == 'DELETE':
-            return delete(request, pk, Shopping)
-
+        if request.method == "POST":
+            return prepare_post_response(
+                request=request,
+                pk=pk,
+                model=Shopping,
+                serializer=RecipeFollowSerializer,
+                error_message="Рецепт уже есть в списке покупок",
+            )
+        if request.method == "DELETE":
+            return prepare_delete_response(
+                request=request,
+                pk=pk,
+                model=Shopping,
+                success_message="Рецепт успешно удален из списка покупок",
+                not_found_message="Данного рецепта не было в списке покупок",
+            )
+        return None
 
 
 class ShoppingCardView(APIView):
@@ -164,45 +185,45 @@ class ShoppingCardView(APIView):
 
     def get(self, request):
         user = request.user
-        shopping_list = RecipeIngredient.objects.filter(
-            recipe__cart__user=user).values(
-            'ingredient__name',
-            'ingredient__measurement_unit'
-        ).annotate(
-            amount=Sum('amount')
-        ).order_by()
-        font = PDF_FONT_NAME
+        shopping_list = (
+            RecipeIngredient.objects.filter(recipe__cart__user=user)
+            .values("ingredient__name", "ingredient__measurement_unit")
+            .annotate(amount=Sum("amount"))
+            .order_by()
+        )
         pdfmetrics.registerFont(
-            TTFont(PDF_FONT_NAME, f'{PDF_FONT_NAME}.ttf', 'UTF-8')
+            TTFont(
+                PDF_FONT_NAME,
+                f"{PDF_FONT_NAME}.ttf",
+                "UTF-8",
+            )
         )
         buffer = io.BytesIO()
         pdf_file = canvas.Canvas(buffer)
-        pdf_file.setFont(font, PDF_HEADER_FONT_SIZE)
+        pdf_file.setFont(PDF_FONT_NAME, PDF_HEADER_FONT_SIZE)
         pdf_file.drawString(
             PDF_CENTER,
             PDF_HEIGHT,
             PDF_HEADER_TEXT,
         )
-        pdf_file.setFont(font, PDF_TEXT_FONT_SIZE)
+        pdf_file.setFont(PDF_FONT_NAME, PDF_TEXT_FONT_SIZE)
         from_bottom = PDF_HEIGHT - PDF_LEFT
         for number, ingredient in enumerate(shopping_list, start=1):
             pdf_file.drawString(
                 PDF_LEFT,
                 from_bottom,
-                (f'{number}.  {ingredient["ingredient__name"]} - '
-                 f'{ingredient["amount"]} '
-                 f'{ingredient["ingredient__measurement_unit"]}')
+                (
+                    f'{number}.  {ingredient["ingredient__name"]} - '
+                    f'{ingredient["amount"]} '
+                    f'{ingredient["ingredient__measurement_unit"]}'
+                ),
             )
             from_bottom -= PDF_STEP
             if from_bottom <= PDF_LEFT:
                 from_bottom = PDF_HEIGHT
                 pdf_file.showPage()
-                pdf_file.setFont(font, PDF_TEXT_FONT_SIZE)
+                pdf_file.setFont(PDF_FONT_NAME, PDF_TEXT_FONT_SIZE)
         pdf_file.showPage()
         pdf_file.save()
         buffer.seek(0)
-        return FileResponse(
-            buffer, as_attachment=True, filename=PDF_FILENAME
-        )
-    
-    
+        return FileResponse(buffer, as_attachment=True, filename=PDF_FILENAME)
