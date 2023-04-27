@@ -1,3 +1,5 @@
+from typing import Union
+
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.request import Request
@@ -10,7 +12,7 @@ from recipes.models import Favorite, Recipe, RecipeIngredient, Shopping
 def prepare_post_response(
     request: Request,
     pk: int,
-    model: Favorite | Shopping,
+    model: Union[Favorite, Shopping],
     serializer: Serializer,
     error_message: str,
 ) -> Response:
@@ -28,7 +30,7 @@ def prepare_post_response(
 def prepare_delete_response(
     request: Request,
     pk: int,
-    model: Favorite | Shopping,
+    model: Union[Favorite, Shopping],
     success_message: str,
     not_found_message: str,
 ) -> Response:

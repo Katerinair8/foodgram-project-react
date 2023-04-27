@@ -26,7 +26,7 @@ from .constants import (PDF_CENTER, PDF_FILENAME, PDF_FONT_NAME,
 from .filters import IngredientFilter, RecipeFilter
 from .mixins import ListRetrieveViewSet
 from .pagination import CustomPageNumberPagination
-from .permissions import IsAuthor
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (FollowSerializer, IngredientSerializer,
                           RecipeFollowSerializer, RecipeGetSerializer,
                           RecipeSerializer, TagSerializer)
@@ -85,9 +85,9 @@ class CustomUserViewSet(UserViewSet):
         methods=["GET"],
     )
     def subscriptions(self, request):
-        user = request.user
-        context = {"request": request, "user": user, "author": None}
-        queryset = Subscribe.objects.filter(user=user)
+        current_user = request.user
+        context = {"request": request, "user": current_user, "author": None}
+        queryset = Subscribe.objects.filter(user=current_user)
         pages = self.paginate_queryset(queryset)
         serializer = FollowSerializer(pages, many=True, context=context)
         return self.get_paginated_response(serializer.data)
@@ -130,7 +130,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action != "create":
-            return (IsAuthor(),)
+            return (IsAuthorOrReadOnly(),)
         return super().get_permissions()
 
     @action(
@@ -146,7 +146,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 serializer=RecipeFollowSerializer,
                 error_message="Рецепт уже есть в избранном",
             )
-        if request.method == "DELETE":
+        elif request.method == "DELETE":
             return prepare_delete_response(
                 request=request,
                 pk=pk,
@@ -169,7 +169,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 serializer=RecipeFollowSerializer,
                 error_message="Рецепт уже есть в списке покупок",
             )
-        if request.method == "DELETE":
+        elif request.method == "DELETE":
             return prepare_delete_response(
                 request=request,
                 pk=pk,

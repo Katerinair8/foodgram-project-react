@@ -174,10 +174,7 @@ class RecipeGetSerializer(serializers.ModelSerializer):
 
     def get_ingredients(self, obj):
         recipe_ingredients = RecipeIngredient.objects.filter(recipe=obj)
-        return IngredientRecipeGetSerializer(
-            recipe_ingredients,
-            many=True
-        ).data
+        return IngredientRecipeGetSerializer(recipe_ingredients, many=True).data
 
 
 class RecipeSerializer(serializers.ModelSerializer):

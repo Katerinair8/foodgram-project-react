@@ -1,16 +1,7 @@
-FROM python:3.8-slim
+FROM python:3.8.5
 
-WORKDIR /app
-
-RUN apt-get update && apt-get install --reinstall libpq-dev -y
-RUN apt update && apt install postgresql gcc -y
-
+WORKDIR /code
 COPY requirements.txt .
-
-RUN python -m pip install --upgrade pip && pip3 install -r requirements.txt --no-cache-dir
-
+RUN pip install -r requirements.txt
 COPY . .
-
-RUN chmod +x setup.sh
-
-CMD ["gunicorn", "backend.wsgi:application", "--bind", "0:8000"]
+CMD gunicorn backend.wsgi:application --bind 0.0.0.0:8000
