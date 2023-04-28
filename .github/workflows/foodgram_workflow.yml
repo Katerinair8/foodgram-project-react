@@ -14,12 +14,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # pip install flake8 pep8-naming flake8-broken-line flake8-return flake8-isort
+          pip install flake8 pep8-naming flake8-broken-line flake8-return flake8-isort
           pip install -r backend/requirements.txt
-      # - name: Test with flake8
-      #   run: |
-      #     cd backend/
-      #     python -m flake8
+      - name: Test with flake8
+        run: |
+          cd backend/
+          python -m flake8
   build_and_push_to_docker_hub:
     name: Push Docker image to DockerHub
     runs-on: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
           script: |
-            cd ~
+            cd ~/infra
             touch .env
             echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> .env
             echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env

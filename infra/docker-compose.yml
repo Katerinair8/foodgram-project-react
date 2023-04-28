@@ -21,9 +21,7 @@ services:
       - ./.env
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: katerinair8/foodgram_front:v1.0
     volumes:
       - ../frontend/:/app/result_build/
 
