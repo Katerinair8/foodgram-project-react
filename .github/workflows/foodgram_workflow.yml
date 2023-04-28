@@ -54,6 +54,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
           script: |
+            cp ~/infra/docker-compose.yml .
             sudo docker-compose stop
             sudo docker-compose rm backend
             touch .env
