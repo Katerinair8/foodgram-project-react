@@ -54,9 +54,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
           script: |
-            cp ~/infra/docker-compose.yml .
-            sudo docker-compose stop
-            sudo docker-compose rm backend
+            sudo cd ~
             touch .env
             echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> .env
             echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
@@ -67,6 +65,8 @@ jobs:
             echo DB_PORT=${{ secrets.DB_PORT }} >> .env
             echo DEBUG=${{ secrets.DEBUG }} >> .env
             echo ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} >> .env
+            sudo docker-compose stop
+            sudo docker-compose rm backend
             sudo docker-compose up -d
   send_message:
     runs-on: ubuntu-latest
