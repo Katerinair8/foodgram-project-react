@@ -16,21 +16,21 @@ from rest_framework.permissions import (AllowAny, IsAuthenticated,
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.constants import (PDF_CENTER, PDF_FILENAME, PDF_FONT_NAME,
+                        PDF_HEADER_FONT_SIZE, PDF_HEADER_TEXT, PDF_HEIGHT,
+                        PDF_LEFT, PDF_STEP, PDF_TEXT_FONT_SIZE)
+from api.filters import IngredientFilter, RecipeFilter
+from api.mixins import ListRetrieveViewSet
+from api.pagination import CustomPageNumberPagination
+from api.permissions import IsAuthorOrReadOnly
+from api.serializers import (FollowSerializer, IngredientSerializer,
+                             RecipeFollowSerializer, RecipeGetSerializer,
+                             RecipeSerializer, TagSerializer)
+from api.utils import prepare_delete_response, prepare_post_response
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             Shopping, Tag)
 from users.models import Subscribe
 
-from .constants import (PDF_CENTER, PDF_FILENAME, PDF_FONT_NAME,
-                        PDF_HEADER_FONT_SIZE, PDF_HEADER_TEXT, PDF_HEIGHT,
-                        PDF_LEFT, PDF_STEP, PDF_TEXT_FONT_SIZE)
-from .filters import IngredientFilter, RecipeFilter
-from .mixins import ListRetrieveViewSet
-from .pagination import CustomPageNumberPagination
-from .permissions import IsAuthorOrReadOnly
-from .serializers import (FollowSerializer, IngredientSerializer,
-                          RecipeFollowSerializer, RecipeGetSerializer,
-                          RecipeSerializer, TagSerializer)
-from .utils import prepare_delete_response, prepare_post_response
 
 CustomUser = get_user_model()
 
@@ -48,36 +48,24 @@ class CustomUserViewSet(UserViewSet):
         author = get_object_or_404(CustomUser, id=id)
         context = {"request": request, "user": current_user, "author": author}
 
-        serializer = FollowSerializer(None, many=True, context=context)
+        serializer = FollowSerializer(None, context=context).is_valid(raise_exception=True)
 
         if self.request.method == "POST":
-            if len(serializer.data) > 1:
-                if serializer.data[0]["is_subscribed"]:
-                    return Response(
-                        {"errors": "Вы уже подписаны на данного пользователя"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
             follow = Subscribe.objects.create(user=current_user, author=author)
             serializer = FollowSerializer(follow, context=context)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         if self.request.method == "DELETE":
-            if len(serializer.data) > 1:
-                if serializer.data[0]["is_subscribed"]:
-                    follow = get_object_or_404(
-                        Subscribe,
-                        user=current_user,
-                        author=author,
-                    )
-                    follow.delete()
-                    return Response(
-                        "Подписка успешно удалена",
-                        status=status.HTTP_204_NO_CONTENT,
-                    )
-            return Response(
-                {"errors": "Ошибка отписки"},
-                status=status.HTTP_400_BAD_REQUEST,
+            follow = get_object_or_404(
+                Subscribe,
+                user=current_user,
+                author=author,
             )
-        return None
+            follow.delete()
+            return Response(
+                "Подписка успешно удалена",
+                status=status.HTTP_204_NO_CONTENT,
+            )
+       
 
     @action(
         detail=False,
@@ -138,8 +126,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         methods=["POST", "DELETE"],
     )
     def favorite(self, request, pk):
+        res = None
         if request.method == "POST":
-            return prepare_post_response(
+            res = prepare_post_response(
                 request=request,
                 pk=pk,
                 model=Favorite,
@@ -147,22 +136,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 error_message="Рецепт уже есть в избранном",
             )
         elif request.method == "DELETE":
-            return prepare_delete_response(
+            res = prepare_delete_response(
                 request=request,
                 pk=pk,
                 model=Favorite,
                 success_message="Рецепт успешно удален из избранного",
                 not_found_message="Данного рецепта не было в избранном",
             )
-        return None
+        return res
 
     @action(
         detail=True,
         methods=["POST", "DELETE"],
     )
     def shopping_cart(self, request, pk):
+        res = None
         if request.method == "POST":
-            return prepare_post_response(
+            res = prepare_post_response(
                 request=request,
                 pk=pk,
                 model=Shopping,
@@ -170,14 +160,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 error_message="Рецепт уже есть в списке покупок",
             )
         elif request.method == "DELETE":
-            return prepare_delete_response(
+            res = prepare_delete_response(
                 request=request,
                 pk=pk,
                 model=Shopping,
                 success_message="Рецепт успешно удален из списка покупок",
                 not_found_message="Данного рецепта не было в списке покупок",
             )
-        return None
+        return res
 
 
 class ShoppingCardView(APIView):

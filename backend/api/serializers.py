@@ -4,10 +4,9 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
+from api.utils import recipe_ingredient_create
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users.models import Subscribe
-
-from .utils import recipe_ingredient_create
 
 User = get_user_model()
 
@@ -102,7 +101,6 @@ class FollowSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source="author.username")
     first_name = serializers.ReadOnlyField(source="author.first_name")
     last_name = serializers.ReadOnlyField(source="author.last_name")
-    is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.ReadOnlyField(source="author.recipes.count")
 
@@ -114,15 +112,24 @@ class FollowSerializer(serializers.ModelSerializer):
             "username",
             "first_name",
             "last_name",
-            "is_subscribed",
             "recipes",
             "recipes_count",
         )
 
-    def get_is_subscribed(self, obj):
-        return Subscribe.objects.filter(
-            user=self.context["user"], author=self.context["author"]
-        ).exists()
+    def validate(self):
+        method = self.context["request"].method
+        if method == "POST":
+            if (Subscribe.objects.filter(
+                user=self.context["user"], author=self.context["author"]
+            ).exists()):
+                raise serializers.ValidationError("Вы уже подписаны на данного пользователя")
+        elif method == "DELETE":
+            if not (Subscribe.objects.filter(
+                user=self.context["user"], author=self.context["author"]
+            ).exists()):
+                raise serializers.ValidationError("Ошибка подписки")
+
+
 
     def get_recipes(self, obj):
         request = self.context["request"]
@@ -174,7 +181,10 @@ class RecipeGetSerializer(serializers.ModelSerializer):
 
     def get_ingredients(self, obj):
         recipe_ingredients = RecipeIngredient.objects.filter(recipe=obj)
-        return IngredientRecipeGetSerializer(recipe_ingredients, many=True).data
+        return IngredientRecipeGetSerializer(
+            recipe_ingredients,
+            many=True,
+        ).data
 
 
 class RecipeSerializer(serializers.ModelSerializer):
