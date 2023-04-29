@@ -71,7 +71,7 @@ jobs:
             echo DB_HOST=${{ secrets.DB_HOST }} >> .env
             echo DB_PORT=${{ secrets.DB_PORT }} >> .env
             echo DEBUG=${{ secrets.DEBUG }} >> .env
-            echo ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} >> .env
+            echo ALLOWED_HOSTS='${{ secrets.ALLOWED_HOSTS }}' >> .env
             sudo docker-compose stop
             sudo docker-compose rm backend
             sudo docker-compose up -d
