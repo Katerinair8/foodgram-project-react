@@ -17,8 +17,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.constants import (PDF_CENTER, PDF_FILENAME, PDF_FONT_NAME,
-                        PDF_HEADER_FONT_SIZE, PDF_HEADER_TEXT, PDF_HEIGHT,
-                        PDF_LEFT, PDF_STEP, PDF_TEXT_FONT_SIZE)
+                           PDF_HEADER_FONT_SIZE, PDF_HEADER_TEXT, PDF_HEIGHT,
+                           PDF_LEFT, PDF_STEP, PDF_TEXT_FONT_SIZE)
 from api.filters import IngredientFilter, RecipeFilter
 from api.mixins import ListRetrieveViewSet
 from api.pagination import CustomPageNumberPagination
@@ -30,7 +30,6 @@ from api.utils import prepare_delete_response, prepare_post_response
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             Shopping, Tag)
 from users.models import Subscribe
-
 
 CustomUser = get_user_model()
 
@@ -48,13 +47,18 @@ class CustomUserViewSet(UserViewSet):
         author = get_object_or_404(CustomUser, id=id)
         context = {"request": request, "user": current_user, "author": author}
 
-        serializer = FollowSerializer(None, context=context).is_valid(raise_exception=True)
+        serializer = FollowSerializer(
+            data=dict(),
+            context=context,
+        )
+
+        serializer.is_valid(raise_exception=True)
 
         if self.request.method == "POST":
             follow = Subscribe.objects.create(user=current_user, author=author)
             serializer = FollowSerializer(follow, context=context)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        if self.request.method == "DELETE":
+        elif self.request.method == "DELETE":
             follow = get_object_or_404(
                 Subscribe,
                 user=current_user,
@@ -65,7 +69,6 @@ class CustomUserViewSet(UserViewSet):
                 "Подписка успешно удалена",
                 status=status.HTTP_204_NO_CONTENT,
             )
-       
 
     @action(
         detail=False,
@@ -126,9 +129,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         methods=["POST", "DELETE"],
     )
     def favorite(self, request, pk):
-        res = None
         if request.method == "POST":
-            res = prepare_post_response(
+            return prepare_post_response(
                 request=request,
                 pk=pk,
                 model=Favorite,
@@ -136,23 +138,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 error_message="Рецепт уже есть в избранном",
             )
         elif request.method == "DELETE":
-            res = prepare_delete_response(
+            return prepare_delete_response(
                 request=request,
                 pk=pk,
                 model=Favorite,
                 success_message="Рецепт успешно удален из избранного",
                 not_found_message="Данного рецепта не было в избранном",
             )
-        return res
 
     @action(
         detail=True,
         methods=["POST", "DELETE"],
     )
     def shopping_cart(self, request, pk):
-        res = None
         if request.method == "POST":
-            res = prepare_post_response(
+            return prepare_post_response(
                 request=request,
                 pk=pk,
                 model=Shopping,
@@ -160,14 +160,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 error_message="Рецепт уже есть в списке покупок",
             )
         elif request.method == "DELETE":
-            res = prepare_delete_response(
+            return prepare_delete_response(
                 request=request,
                 pk=pk,
                 model=Shopping,
                 success_message="Рецепт успешно удален из списка покупок",
                 not_found_message="Данного рецепта не было в списке покупок",
             )
-        return res
 
 
 class ShoppingCardView(APIView):

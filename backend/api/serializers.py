@@ -116,20 +116,21 @@ class FollowSerializer(serializers.ModelSerializer):
             "recipes_count",
         )
 
-    def validate(self):
+    def validate(self, data):
         method = self.context["request"].method
         if method == "POST":
             if (Subscribe.objects.filter(
                 user=self.context["user"], author=self.context["author"]
             ).exists()):
-                raise serializers.ValidationError("Вы уже подписаны на данного пользователя")
+                raise serializers.ValidationError(
+                    "Вы уже подписаны на данного пользователя",
+                )
         elif method == "DELETE":
             if not (Subscribe.objects.filter(
                 user=self.context["user"], author=self.context["author"]
             ).exists()):
                 raise serializers.ValidationError("Ошибка подписки")
-
-
+        return data
 
     def get_recipes(self, obj):
         request = self.context["request"]
