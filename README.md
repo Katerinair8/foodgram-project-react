@@ -6,6 +6,10 @@ Foodgram - «Продуктовый помощник». На этом серви
 
 # [![Django-app workflow](https://github.com/Katerinair8/yamdb_final/actions/workflows/yamdb_workflow.yml/badge.svg?branch=master)](https://github.com/Katerinair8/yamdb_final/actions/workflows/yamdb_workflow.yml)
 
+# IP сервера:
+
+51.250.93.26
+
 # Как запустить приложения в контейнерах:
 
 Развернуть проект через docker-compose:
