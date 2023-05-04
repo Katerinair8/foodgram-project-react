@@ -211,7 +211,10 @@ class RecipeSerializer(serializers.ModelSerializer):
             "image",
         )
         read_only_fields = ("id", "author", "tags")
-        extra_kwargs = {'ingredients': {'required': True}, 'tags': {'required': True}}
+        extra_kwargs = {
+            'ingredients': {'required': True}, 
+            'tags': {'required': True},
+        }
 
     def validate(self, data):
         ingredients = self.initial_data.get("ingredients")
