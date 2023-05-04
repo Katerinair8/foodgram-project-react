@@ -212,7 +212,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "author", "tags")
         extra_kwargs = {
-            'ingredients': {'required': True}, 
+            'ingredients': {'required': True},
             'tags': {'required': True},
         }
 
