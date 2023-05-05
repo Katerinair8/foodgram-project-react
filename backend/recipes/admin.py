@@ -27,6 +27,11 @@ class IngredientAdmin(admin.ModelAdmin):
     empty_value_display = settings.EMPTY_VALUE_DISPLAY
 
 
+class RecipeIngredientInline(admin.StackedInline):
+    model = RecipeIngredient
+    filter_horizontal = ('ingredients',)
+
+
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "author", "count_favorites")
@@ -43,6 +48,7 @@ class RecipeAdmin(admin.ModelAdmin):
     )
     ordering = ("name",)
     empty_value_display = settings.EMPTY_VALUE_DISPLAY
+    inlines = [RecipeIngredientInline]
 
     def count_favorites(self, obj):
         return obj.favorites.count()
