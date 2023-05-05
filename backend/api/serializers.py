@@ -217,7 +217,17 @@ class RecipeSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, data):
+        tags = self.initial_data.get("tags")
+        if len(tags) == 0:
+            raise serializers.ValidationError(
+                "Нужен хотя бы один тег"
+            )
         ingredients = self.initial_data.get("ingredients")
+        if len(ingredients) == 0:
+            raise serializers.ValidationError(
+                "Нужен хотя бы один ингредиент"
+            )
+
         ingredients_list = [ingredient["id"] for ingredient in ingredients]
         if len(ingredients_list) != len(set(ingredients_list)):
             raise serializers.ValidationError(
