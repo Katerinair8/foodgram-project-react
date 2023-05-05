@@ -39,6 +39,8 @@ services:
     depends_on:
       - backend
       - frontend
+    environment:
+      - PYTHONUNBUFFERED=0
 
 volumes:
   postgres_data:

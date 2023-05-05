@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:13.0-alpine
+    image: postgres:13.0-alpine     
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
@@ -44,7 +44,8 @@ services:
     depends_on:
       - backend
       - frontend
-      
+    environment:
+      - PYTHONUNBUFFERED=0
 volumes:
   postgres_data:
   static_value:

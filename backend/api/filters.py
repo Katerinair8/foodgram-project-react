@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 
 from recipes.models import Ingredient, Recipe, Tag
 
+
 User = get_user_model()
 
 
@@ -25,24 +26,24 @@ class RecipeFilter(django_filters.FilterSet):
     )
     author = django_filters.ModelChoiceFilter(queryset=User.objects.all())
 
-    is_favorited = django_filters.BooleanFilter(
-        method="is_favorited",
+    is_favorited = django_filters.NumberFilter(
+        method="get_is_favorited",
     )
 
-    is_in_shopping_cart = django_filters.BooleanFilter(
-        method="is_in_shopping_cart",
+    is_in_shopping_cart = django_filters.NumberFilter(
+        method="get_is_in_shopping_cart",
     )
 
     class Meta:
         model = Recipe
-        fields = ("tags", "author")
+        fields = ("tags", "author", "is_in_shopping_cart", "is_favorited")
 
-    def is_favorited(self, queryset, name, value, request):
+    def get_is_favorited(self, queryset, name, value):
         if value:
-            return queryset.filter(favorites__user=request.user)
+            return queryset.filter(favorites__user=self.request.user)
         return queryset
 
-    def is_in_shopping_cart(self, queryset, name, value, request):
+    def get_is_in_shopping_cart(self, queryset, name, value):
         if value:
-            return queryset.filter(cart__user=request.user)
+            return queryset.filter(cart__user=self.request.user)
         return queryset
