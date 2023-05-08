@@ -4,6 +4,7 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
+from api.constants import INTEGER_FIELD_MAX_VALUE, INTEGER_FIELD_MIN_VALUE
 from api.utils import recipe_ingredient_create
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users.models import Subscribe
@@ -77,7 +78,11 @@ class IngredientRecipeGetSerializer(serializers.ModelSerializer):
 
 class IngredientRecipeSerializer(serializers.ModelSerializer):
     recipe = serializers.PrimaryKeyRelatedField(read_only=True)
-    amount = serializers.IntegerField(write_only=True, min_value=1)
+    amount = serializers.IntegerField(
+        write_only=True,
+        min_value=INTEGER_FIELD_MIN_VALUE,
+        max_value=INTEGER_FIELD_MAX_VALUE,
+    )
     id = serializers.PrimaryKeyRelatedField(
         source="ingredient", queryset=Ingredient.objects.all()
     )
@@ -196,7 +201,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         many=True,
     )
     image = Base64ImageField(max_length=None, use_url=True)
-    cooking_time = serializers.IntegerField(min_value=1)
+    cooking_time = serializers.IntegerField(
+        min_value=INTEGER_FIELD_MIN_VALUE,
+        max_value=INTEGER_FIELD_MAX_VALUE,
+    )
 
     class Meta:
         model = Recipe
@@ -218,12 +226,12 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         tags = self.initial_data.get("tags")
-        if len(tags) == 0:
+        if not len(tags):
             raise serializers.ValidationError(
                 "Нужен хотя бы один тег"
             )
         ingredients = self.initial_data.get("ingredients")
-        if len(ingredients) == 0:
+        if not len(ingredients):
             raise serializers.ValidationError(
                 "Нужен хотя бы один ингредиент"
             )
