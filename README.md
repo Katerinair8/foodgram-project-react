@@ -2,10 +2,6 @@
 
 Foodgram - это «Продуктовый помощник». На этом сервисе пользователи могут публиковать рецепты, подписываться на публикации других пользователей, добавлять понравившиеся рецепты в список «Избранное», а перед походом в магазин скачивать сводный список продуктов, необходимых для приготовления одного или нескольких выбранных блюд
 
-Бэйдж, который показывает статус workflow:
-
-# [![Django-app workflow](https://github.com/Katerinair8/yamdb_final/actions/workflows/yamdb_workflow.yml/badge.svg?branch=master)](https://github.com/Katerinair8/yamdb_final/actions/workflows/yamdb_workflow.yml)
-
 # IP сервера:
 
 158.160.58.80
