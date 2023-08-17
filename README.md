@@ -47,7 +47,7 @@ DRF Simple JWT 4.8.0
 Клонировать репозиторий и перейти в него в командной строке:
 
 ```
-https://github.com/Katerinair8/foodgram-project-react.git
+git clone https://github.com/Katerinair8/foodgram-project-react.git
 ```
 
 Cоздать и активировать виртуальное окружение:
